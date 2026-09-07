@@ -99,20 +99,23 @@ button:disabled {
 }
 
 .mark {
-  display: grid;
-  place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid var(--amber);
-  color: var(--amber-bright);
-  font:
-    600 18px "IBM Plex Mono",
-    monospace;
-  transform: rotate(45deg);
+  flex: 0 0 auto;
 }
 
-.mark::first-line {
-  transform: rotate(-45deg);
+.mark-field {
+  fill: var(--ink);
+}
+
+.mark-frame {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 4;
+}
+
+.mark-weave {
+  fill: var(--paper);
 }
 
 .stage-rail ol {
@@ -124,10 +127,9 @@ button:disabled {
 }
 
 .stage-step {
-  position: relative;
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 64px;
   color: var(--fog);
   font:
@@ -136,9 +138,21 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.stage-step svg {
+.stage-icon {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+}
+
+.stage-icon > svg {
   width: 19px;
   height: 19px;
+}
+
+.stage-label {
+  line-height: 1.4;
 }
 .stage-step[data-current="true"] {
   color: var(--paper);
@@ -149,9 +163,7 @@ button:disabled {
 
 .stage-orbit {
   position: absolute;
-  top: -11px;
-  width: 42px;
-  height: 42px;
+  inset: 0;
   border: 1px solid var(--amber);
   border-radius: 50%;
   box-shadow: 0 0 28px color-mix(in srgb, var(--amber) 18%, transparent);
@@ -606,23 +618,11 @@ button:disabled {
   }
   .stage-rail ol {
     display: flex;
-    gap: 12px;
+    gap: 4px;
   }
   .stage-step {
-    width: 54px;
-  }
-  .stage-step span:last-child {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .stage-orbit {
-    top: -8px;
+    width: 58px;
+    font-size: 8px;
   }
   .local-note {
     display: none;
@@ -650,10 +650,11 @@ button:disabled {
     padding: 10px 12px;
   }
   .stage-rail ol {
-    gap: 2px;
+    gap: 0;
   }
   .stage-step {
-    width: 42px;
+    width: 50px;
+    font-size: 7px;
   }
   .workspace {
     min-height: auto;

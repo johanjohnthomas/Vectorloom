@@ -1,4 +1,4 @@
-import { Download, Layers3, Scissors, Sparkles } from "lucide-react"
+import { Download, Layers3, Scissors, Spline } from "lucide-react"
 import { m } from "motion/react"
 import type { SvgAnalysis } from "../domain/vectorize"
 
@@ -33,7 +33,7 @@ export function Inspector(props: InspectorProps) {
           <span className="coordinate">RA 05 35 · DEC +22</span>
           <h2>Cut observatory</h2>
         </div>
-        <Sparkles aria-hidden="true" />
+        <Spline aria-hidden="true" />
       </header>
 
       <section className="control-section">
@@ -138,7 +138,7 @@ export function Inspector(props: InspectorProps) {
           onClick={props.onVectorize}
           whileTap={{ scale: 0.98 }}
         >
-          <Sparkles aria-hidden="true" />
+          <Spline aria-hidden="true" />
           {props.isProcessing ? "Mapping subject…" : "Create cut paths"}
         </m.button>
         <button

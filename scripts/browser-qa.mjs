@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { chromium } from "playwright"
 
 const evidenceDirectory = ".omo/evidence/vectorloom-browser"
+const baseUrl = process.env.VECTORLOOM_BASE_URL ?? "http://127.0.0.1:4173/"
 await mkdir(evidenceDirectory, { recursive: true })
 
 const browser = await chromium.launch({ channel: "chrome" })
@@ -17,7 +18,7 @@ page.on("console", (message) => {
   }
   consoleErrors.push(text)
 })
-await page.goto("http://127.0.0.1:4173/", { waitUntil: "networkidle" })
+await page.goto(baseUrl, { waitUntil: "networkidle" })
 await page.screenshot({ path: `${evidenceDirectory}/desktop-empty.png`, fullPage: true })
 
 const raceCar = await readFile("tests/fixtures/vintage-race-car.png")
@@ -33,6 +34,7 @@ await page.keyboard.press("Shift+ArrowUp")
 await page.screenshot({ path: `${evidenceDirectory}/desktop-selected.png`, fullPage: true })
 
 await page.getByRole("button", { name: "Create cut paths" }).click()
+await page.screenshot({ path: `${evidenceDirectory}/desktop-processing.png`, fullPage: true })
 await page.getByText(/Cut paths created|Subject isolated/u).waitFor({ timeout: 120_000 })
 await page.locator(".processing").waitFor({ state: "detached", timeout: 5_000 })
 await page.screenshot({ path: `${evidenceDirectory}/desktop-vector.png`, fullPage: true })
