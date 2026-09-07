@@ -131,6 +131,25 @@ describe("buildLayerMasks", () => {
     ).toEqual([9, 18])
   })
 
+  it("keeps white solid beneath a dark pupil when inverse nesting creates a cycle", () => {
+    // Given
+    const source = image([
+      [white, white, white, TRANSPARENT, black, black, black, black, black],
+      [white, black, white, TRANSPARENT, black, black, black, black, black],
+      [white, white, white, TRANSPARENT, black, black, white, black, black],
+      [TRANSPARENT, TRANSPARENT, TRANSPARENT, TRANSPARENT, black, black, black, black, black],
+      [TRANSPARENT, TRANSPARENT, TRANSPARENT, TRANSPARENT, black, black, black, black, black],
+    ])
+
+    // When
+    const result = buildLayerMasks(source, { filledBacking: true, smoothing: 0 })
+
+    // Then
+    const whiteBacking = result.layers.find(({ color }) => color === "#ffffff")
+    expect(whiteBacking?.mask[10]).toBe(1)
+    expect(result.layers.at(-1)?.color).toBe("#000000")
+  })
+
   it("returns no layers for an empty image", () => {
     // Given
     const source = { data: new Uint8ClampedArray(), width: 0, height: 0 }

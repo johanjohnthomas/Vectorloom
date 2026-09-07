@@ -72,10 +72,33 @@ export function buildLayerMasks(image: RasterImage, options: LayerMaskOptions): 
     warnings.push(
       "Some colors nest in both directions. Backing connects them where the stacking order allows; remaining cut-outs preserve the design.",
     )
+    const brightnessById = new Map(
+      activeColors.map(({ color, id }) => {
+        const rgb = Number.parseInt(color.slice(1), 16)
+        return [
+          id,
+          ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114,
+        ] as const
+      }),
+    )
+    const cyclicRank = new Map(
+      [...cyclicIds]
+        .sort(
+          (left, right) =>
+            (brightnessById.get(right) ?? 0) - (brightnessById.get(left) ?? 0) || left - right,
+        )
+        .map((id, rank) => [id, rank]),
+    )
     for (const id of cyclicIds) {
       const exact = exactMasks.get(id)
       if (exact !== undefined) masks.set(id, exact)
-      dependencies.get(id)?.clear()
+      const sourceRank = cyclicRank.get(id)
+      const targets = dependencies.get(id)
+      if (sourceRank === undefined || targets === undefined) continue
+      for (const target of targets) {
+        const targetRank = cyclicRank.get(target)
+        if (targetRank !== undefined && sourceRank > targetRank) targets.delete(target)
+      }
     }
   }
 

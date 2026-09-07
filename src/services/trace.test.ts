@@ -38,6 +38,33 @@ describe("craft SVG export", () => {
     expect(stacked.analysis.layerCount).toBe(2)
   })
 
+  it("exports one connected backing path beneath a thin upper bridge", () => {
+    // Given
+    const width = 64
+    const data = new Uint8ClampedArray(width * width * 4)
+    for (let y = 22; y < 42; y += 1) {
+      for (let x = 6; x < 22; x += 1) data.set([255, 255, 255, 255], (y * width + x) * 4)
+      for (let x = 42; x < 58; x += 1) data.set([255, 255, 255, 255], (y * width + x) * 4)
+    }
+    for (let x = 22; x < 42; x += 1) data.set([0, 0, 0, 255], (32 * width + x) * 4)
+    const source = { data, width, height: width, colorSpace: "srgb" } satisfies ImageData
+
+    // When
+    const result = traceImage(source, {
+      ...settings,
+      mergeShades: 0,
+      smoothing: 0.9,
+      filledBacking: true,
+    })
+
+    // Then
+    const whiteLayer = result.layers.find(({ color }) => color === "#ffffff")
+    const whiteMask = result.document.layers.find(({ color }) => color === "#ffffff")?.mask
+    expect(whiteMask?.[32 * width + 32]).toBe(1)
+    expect(whiteMask?.[31 * width + 32]).toBe(0)
+    expect(whiteLayer?.paths.join("").match(/M/gu)).toHaveLength(1)
+  })
+
   it("returns no fake layer for an empty mask", () => {
     const image = eyeImage()
     image.data.fill(0)

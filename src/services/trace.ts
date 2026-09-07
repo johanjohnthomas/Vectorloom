@@ -39,7 +39,10 @@ export function traceImage(
     const mask = new Uint8Array(smoothed.length)
     for (let pixelIndex = 0; pixelIndex < mask.length; pixelIndex += 1) {
       mask[pixelIndex] =
-        smoothed[pixelIndex] === 1 && prepared.pixels[pixelIndex * 4 + 3] === 255 ? 1 : 0
+        prepared.pixels[pixelIndex * 4 + 3] === 255 &&
+        (smoothed[pixelIndex] === 1 || (settings.filledBacking && layer.mask[pixelIndex] === 1))
+          ? 1
+          : 0
     }
     return { id: `layer-${index + 1}`, color: layer.color, mask }
   })
