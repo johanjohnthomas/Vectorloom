@@ -1,6 +1,6 @@
 import { ImagePlus, LocateFixed, MousePointer2, RotateCcw } from "lucide-react"
 import { AnimatePresence, m } from "motion/react"
-import { useEffect, useId, useRef } from "react"
+import { type ReactNode, useEffect, useId, useRef } from "react"
 import type { Selection } from "../services/image"
 
 type Status = { readonly kind: "info" | "success" | "error"; readonly message: string }
@@ -11,6 +11,8 @@ type CanvasWorkspaceProps = {
   readonly status: Status
   readonly isProcessing: boolean
   readonly svgUrl: string | undefined
+  readonly previewControls?: ReactNode
+  readonly previewLabel?: string
   readonly onFile: (input: unknown) => void
   readonly onSelectionChange: (selection: Selection) => void
   readonly onCustomSelection: () => void
@@ -141,7 +143,8 @@ export function CanvasWorkspace(props: CanvasWorkspaceProps) {
             animate={{ opacity: 1, filter: "blur(0px)" }}
           >
             <span className="coordinate">CUT PREVIEW</span>
-            <img src={props.svgUrl} alt="Generated cut-path preview" />
+            {props.previewControls}
+            <img src={props.svgUrl} alt={`Cut preview: ${props.previewLabel ?? "All layers"}`} />
           </m.div>
         )}
       </div>

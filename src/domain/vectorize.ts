@@ -135,7 +135,7 @@ export function sanitizeSvg(source: string, width: number, height: number): stri
 export function analyzeSvg(svg: string): SvgAnalysis {
   const pathCount = svg.match(/<path\b/gu)?.length ?? 0
   const fills = new Set(svg.match(/fill="(?:#[0-9a-f]{3,8}|rgb\([^)]+\))"/giu) ?? [])
-  const layerCount = Math.max(1, fills.size)
+  const layerCount = fills.size
   return { pathCount, layerCount, complexity: assessComplexity(pathCount, layerCount) }
 }
 

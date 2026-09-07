@@ -13,6 +13,12 @@ declare module "imagetracerjs" {
     readonly roundcoords?: number
     readonly viewbox?: boolean
     readonly desc?: boolean
+    readonly pal?: readonly {
+      readonly r: number
+      readonly g: number
+      readonly b: number
+      readonly a: number
+    }[]
   }
 
   type ImageTracerApi = {

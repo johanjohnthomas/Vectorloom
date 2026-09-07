@@ -11,6 +11,13 @@ type InspectorProps = {
   readonly colors: number
   readonly detail: number
   readonly smoothing: number
+  readonly mergeShades: number
+  readonly filledBacking: boolean
+  readonly onMergeShadesChange: (value: number) => void
+  readonly onFilledBackingChange: (value: boolean) => void
+  readonly isStale: boolean
+  readonly canDownload: boolean
+  readonly warnings: readonly string[]
   readonly tolerance: number
   readonly selectionInset: number
   readonly analysis: SvgAnalysis | undefined
@@ -77,13 +84,37 @@ export function Inspector(props: InspectorProps) {
         onChange={props.onToleranceChange}
       />
       {props.cutMode === "layered" && (
-        <Control
-          label="Color layers"
-          value={props.colors}
-          min={2}
-          max={8}
-          onChange={props.onColorsChange}
-        />
+        <>
+          <Control
+            label="Maximum colors"
+            value={props.colors}
+            min={2}
+            max={8}
+            onChange={props.onColorsChange}
+          />
+          <Control
+            label="Merge similar shades"
+            value={Math.round(props.mergeShades * 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            onChange={(value) => props.onMergeShadesChange(value / 100)}
+          />
+          <div className="backing-control control-section">
+            <label>
+              <input
+                type="checkbox"
+                checked={props.filledBacking}
+                onChange={(event) => props.onFilledBackingChange(event.target.checked)}
+              />
+              Filled backing layers
+            </label>
+            <p>
+              Fill beneath enclosed details, like a solid white eye under its pupil. Transparent
+              openings stay open.
+            </p>
+          </div>
+        </>
       )}
       <Control
         label="Detail kept"
@@ -131,6 +162,16 @@ export function Inspector(props: InspectorProps) {
       )}
 
       <div className="inspector-actions">
+        {props.isStale && (
+          <p className="result-notice" role="status">
+            Settings changed. Create cut paths to update the preview and export.
+          </p>
+        )}
+        {props.warnings.map((warning) => (
+          <p className="result-notice" key={warning} role="status">
+            {warning}
+          </p>
+        ))}
         <m.button
           type="button"
           className="primary-action"
@@ -144,7 +185,7 @@ export function Inspector(props: InspectorProps) {
         <button
           type="button"
           className="download-action"
-          disabled={!analysis}
+          disabled={!props.canDownload}
           onClick={props.onDownload}
         >
           <Download aria-hidden="true" />

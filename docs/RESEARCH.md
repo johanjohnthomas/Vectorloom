@@ -25,6 +25,15 @@ The MediaPipe crop-and-point flow is materially stronger than color-key backgrou
 
 ## Roadmap
 
+### Implemented layered-cut improvements
+
+- Deterministic perceptual palette clustering merges similar shades before tracing, with a separate maximum-color limit. Transparent pixels do not consume color slots.
+- Each color produces its own mask and named SVG group. Enclosed opaque details can be filled beneath their upper layers; dependency ordering preserves compositing. Conflicting color orders retain cut-outs with a visible warning.
+- Local majority cleanup reduces interior color speckles. Weighted mask smoothing and more permissive quadratic fitting reduce jagged contours. Stroke-free export avoids a decorative outline changing the physical cut shape. Settings follow the upstream [ImageTracer options](https://github.com/jankovicsandras/imagetracerjs/blob/master/options.md).
+- A layer browser isolates pieces using the original viewBox, so registration stays consistent. Reviewing a piece does not filter the download.
+
+### Further work
+
 - Positive/negative brush refinement and multiple subject points.
 - Web Worker execution and model caching for a more responsive first run.
 - SAM2/WebGPU mode for difficult multi-object scenes.

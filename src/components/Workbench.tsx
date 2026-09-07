@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import type { SvgAnalysis } from "../domain/vectorize"
+import { composeSvg } from "../domain/svg-layers"
 import { applyAlphaMask, makeEdgeMask, makeSilhouettePixels } from "../domain/vectorize"
 import type { Selection } from "../services/image"
 import {
@@ -11,10 +11,11 @@ import {
   prepareSelection,
 } from "../services/image"
 import { SegmentationError, segmentSubject } from "../services/segment"
-import { traceImage } from "../services/trace"
+import { type TraceResult, traceImage } from "../services/trace"
 import { CanvasWorkspace } from "./CanvasWorkspace"
 import type { CutMode } from "./Inspector"
 import { Inspector } from "./Inspector"
+import { LayerReview } from "./LayerReview"
 import { StageRail } from "./StageRail"
 
 const DEFAULT_SELECTION: Selection = { x: 0.08, y: 0.08, width: 0.84, height: 0.84 }
@@ -30,6 +31,8 @@ export function Workbench() {
   const [colors, setColors] = useState(4)
   const [detail, setDetail] = useState(0.58)
   const [smoothing, setSmoothing] = useState(0.42)
+  const [mergeShades, setMergeShades] = useState(0.6)
+  const [filledBacking, setFilledBacking] = useState(false)
   const [tolerance, setTolerance] = useState(40)
   const [selectionInset, setSelectionInset] = useState(8)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -37,9 +40,22 @@ export function Workbench() {
     kind: "info",
     message: "Choose an image, then draw a box around the subject.",
   })
-  const [svg, setSvg] = useState<string>()
+  const [result, setResult] = useState<TraceResult>()
+  const [selectedLayer, setSelectedLayer] = useState<number>()
+  const [generatedSettings, setGeneratedSettings] = useState("")
   const [svgUrl, setSvgUrl] = useState<string>()
-  const [analysis, setAnalysis] = useState<SvgAnalysis>()
+  const analysis = result?.analysis
+  const settings = {
+    colors: cutMode === "silhouette" ? 1 : colors,
+    detail,
+    smoothing,
+    mergeShades: cutMode === "silhouette" ? 0 : mergeShades,
+    filledBacking: cutMode === "layered" && filledBacking,
+  }
+  const settingsKey = JSON.stringify({ settings, cutMode, selection, tolerance })
+  const isStale = result !== undefined && generatedSettings !== settingsKey
+  const previewLayer = selectedLayer === undefined ? undefined : result?.layers[selectedLayer]
+  const svg = result && (previewLayer ? composeSvg([previewLayer], result) : result.svg)
 
   useEffect(() => {
     if (svg === undefined) {
@@ -69,8 +85,8 @@ export function Workbench() {
       setFileName(file.name.replace(/\.[^.]+$/u, ""))
       setSelection(DEFAULT_SELECTION)
       setSelectionInset(8)
-      setSvg(undefined)
-      setAnalysis(undefined)
+      setResult(undefined)
+      setSelectedLayer(undefined)
       setStatus({
         kind: "success",
         message: "Image ready. Draw tightly around the subject you want to keep.",
@@ -109,14 +125,11 @@ export function Workbench() {
               prepared.imageData.height,
             )
           : applyAlphaMask(prepared.imageData, mask, 0.42)
-      const result = traceImage(tracedImage, {
-        colors: cutMode === "silhouette" ? 2 : colors,
-        detail,
-        smoothing,
-      })
+      const traced = traceImage(tracedImage, settings)
       if (operationId.current !== activeOperation) return
-      setSvg(result.svg)
-      setAnalysis(result.analysis)
+      setResult(traced)
+      setSelectedLayer(undefined)
+      setGeneratedSettings(settingsKey)
       setStatus({
         kind: "success",
         message: usedFallback
@@ -138,9 +151,9 @@ export function Workbench() {
   }
 
   function download(): void {
-    if (svg === undefined) return
+    if (result === undefined || isStale || result.layers.length === 0) return
     const link = document.createElement("a")
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
+    const url = URL.createObjectURL(new Blob([result.svg], { type: "image/svg+xml" }))
     link.href = url
     link.download = `${fileName || "vectorloom"}-cut.svg`
     link.click()
@@ -169,6 +182,20 @@ export function Workbench() {
           status={status}
           isProcessing={isProcessing}
           svgUrl={svgUrl}
+          previewLabel={
+            previewLayer
+              ? `Layer ${(selectedLayer ?? 0) + 1} · ${previewLayer.color}`
+              : "All layers"
+          }
+          previewControls={
+            result && (
+              <LayerReview
+                layers={result.layers}
+                selected={selectedLayer}
+                onSelect={setSelectedLayer}
+              />
+            )
+          }
           onFile={(input) => void handleFile(input)}
           onSelectionChange={setSelection}
           onCustomSelection={() => setSelectionInset(0)}
@@ -185,6 +212,13 @@ export function Workbench() {
         colors={colors}
         detail={detail}
         smoothing={smoothing}
+        mergeShades={mergeShades}
+        filledBacking={filledBacking}
+        onMergeShadesChange={setMergeShades}
+        onFilledBackingChange={setFilledBacking}
+        isStale={isStale}
+        warnings={result?.warnings ?? []}
+        canDownload={!isStale && !isProcessing && (result?.layers.length ?? 0) > 0}
         tolerance={tolerance}
         selectionInset={selectionInset}
         analysis={analysis}
