@@ -1,4 +1,5 @@
 import type { InteractiveSegmenter } from "@mediapipe/tasks-vision"
+import type { SelectionMark } from "../domain/selection-marks"
 
 const WASM_ROOT = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 const MODEL_URL =
@@ -28,17 +29,30 @@ function loadSegmenter(): Promise<InteractiveSegmenter> {
   return segmenterPromise
 }
 
-export async function segmentSubject(image: HTMLCanvasElement): Promise<Float32Array> {
+export async function segmentSubject(
+  image: HTMLCanvasElement,
+  marks: readonly SelectionMark[] = [],
+): Promise<Float32Array> {
   try {
     const segmenter = await loadSegmenter()
     segmenter.setImage(image)
-    const result = segmenter.segment([
-      {
-        brushMode: 1,
-        point: [{ x: 0.5, y: 0.5 }],
-        isCompleted: true,
-      },
-    ])
+    const strokes = marks.map(({ kind, stroke }) => ({
+      brushMode: kind === "keep" ? 1 : 2,
+      point: stroke.points.map(({ x, y }) => ({ x, y })),
+      isCompleted: true,
+    }))
+    const result = segmenter.segment(
+      strokes.some((stroke) => stroke.brushMode === 1)
+        ? strokes
+        : [
+            {
+              brushMode: 1,
+              point: [{ x: 0.5, y: 0.5 }],
+              isCompleted: true,
+            },
+            ...strokes,
+          ],
+    )
     const pixels = result.getAsFloat32Array().slice()
     result.close()
     return pixels

@@ -29,6 +29,8 @@ type InspectorProps = {
   readonly onSelectionInsetChange: (value: number) => void
   readonly onVectorize: () => void
   readonly onDownload: () => void
+  readonly onResetSettings: () => void
+  readonly hasRepairs: boolean
 }
 
 export function Inspector(props: InspectorProps) {
@@ -43,95 +45,107 @@ export function Inspector(props: InspectorProps) {
         <Spline aria-hidden="true" />
       </header>
 
-      <section className="control-section">
-        <h3>Cut style</h3>
-        <div className="mode-picker">
-          <button
-            type="button"
-            data-active={props.cutMode === "silhouette"}
-            onClick={() => props.onCutModeChange("silhouette")}
-          >
-            <Scissors aria-hidden="true" />
-            <strong>Silhouette</strong>
-            <span>One reliable vinyl layer</span>
-          </button>
-          <button
-            type="button"
-            data-active={props.cutMode === "layered"}
-            onClick={() => props.onCutModeChange("layered")}
-          >
-            <Layers3 aria-hidden="true" />
-            <strong>Layered</strong>
-            <span>Flat-color stacked cuts</span>
-          </button>
-        </div>
-      </section>
-
-      <Control
-        label="Subject frame inset"
-        value={props.selectionInset}
-        min={0}
-        max={40}
-        suffix="%"
-        onChange={props.onSelectionInsetChange}
-      />
-      <Control
-        label="Background tolerance"
-        value={props.tolerance}
-        min={5}
-        max={90}
-        suffix="%"
-        onChange={props.onToleranceChange}
-      />
-      {props.cutMode === "layered" && (
-        <>
-          <Control
-            label="Maximum colors"
-            value={props.colors}
-            min={2}
-            max={8}
-            onChange={props.onColorsChange}
-          />
-          <Control
-            label="Merge similar shades"
-            value={Math.round(props.mergeShades * 100)}
-            min={0}
-            max={100}
-            suffix="%"
-            onChange={(value) => props.onMergeShadesChange(value / 100)}
-          />
-          <div className="backing-control control-section">
-            <label>
-              <input
-                type="checkbox"
-                checked={props.filledBacking}
-                onChange={(event) => props.onFilledBackingChange(event.target.checked)}
-              />
-              Filled backing layers
-            </label>
-            <p>
-              Connect pieces with solid backing beneath upper colors. Transparent gaps stay open;
-              pieces that cannot be joined invisibly stay separate.
-            </p>
+      <p className="settings-summary">
+        {props.cutMode === "layered"
+          ? `Layered cut · up to ${props.colors} colors`
+          : "Single-color silhouette"}
+        {props.cutMode === "layered" && props.filledBacking ? " · filled backing" : ""}
+      </p>
+      <details className="advanced-settings">
+        <summary>Advanced settings</summary>
+        <button type="button" className="reset-defaults" onClick={props.onResetSettings}>
+          Use recommended defaults
+        </button>
+        <section className="control-section">
+          <h3>Cut style</h3>
+          <div className="mode-picker">
+            <button
+              type="button"
+              data-active={props.cutMode === "silhouette"}
+              onClick={() => props.onCutModeChange("silhouette")}
+            >
+              <Scissors aria-hidden="true" />
+              <strong>Silhouette</strong>
+              <span>One reliable vinyl layer</span>
+            </button>
+            <button
+              type="button"
+              data-active={props.cutMode === "layered"}
+              onClick={() => props.onCutModeChange("layered")}
+            >
+              <Layers3 aria-hidden="true" />
+              <strong>Layered</strong>
+              <span>Flat-color stacked cuts</span>
+            </button>
           </div>
-        </>
-      )}
-      <Control
-        label="Detail kept"
-        value={Math.round(props.detail * 100)}
-        min={15}
-        max={95}
-        suffix="%"
-        onChange={(value) => props.onDetailChange(value / 100)}
-      />
-      <Control
-        label="Curve smoothing"
-        value={Math.round(props.smoothing * 100)}
-        min={5}
-        max={90}
-        suffix="%"
-        onChange={(value) => props.onSmoothingChange(value / 100)}
-      />
+        </section>
+
+        <Control
+          label="Subject frame inset"
+          value={props.selectionInset}
+          min={0}
+          max={40}
+          suffix="%"
+          onChange={props.onSelectionInsetChange}
+        />
+        <Control
+          label="Background tolerance"
+          value={props.tolerance}
+          min={5}
+          max={90}
+          suffix="%"
+          onChange={props.onToleranceChange}
+        />
+        {props.cutMode === "layered" && (
+          <>
+            <Control
+              label="Maximum colors"
+              value={props.colors}
+              min={2}
+              max={8}
+              onChange={props.onColorsChange}
+            />
+            <Control
+              label="Merge similar shades"
+              value={Math.round(props.mergeShades * 100)}
+              min={0}
+              max={100}
+              suffix="%"
+              onChange={(value) => props.onMergeShadesChange(value / 100)}
+            />
+            <div className="backing-control control-section">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={props.filledBacking}
+                  onChange={(event) => props.onFilledBackingChange(event.target.checked)}
+                />
+                Filled backing layers
+              </label>
+              <p>
+                Connect pieces with solid backing beneath upper colors. Transparent gaps stay open;
+                pieces that cannot be joined invisibly stay separate.
+              </p>
+            </div>
+          </>
+        )}
+        <Control
+          label="Detail kept"
+          value={Math.round(props.detail * 100)}
+          min={15}
+          max={95}
+          suffix="%"
+          onChange={(value) => props.onDetailChange(value / 100)}
+        />
+        <Control
+          label="Curve smoothing"
+          value={Math.round(props.smoothing * 100)}
+          min={5}
+          max={90}
+          suffix="%"
+          onChange={(value) => props.onSmoothingChange(value / 100)}
+        />
+      </details>
 
       {analysis && (
         <m.section
@@ -162,6 +176,9 @@ export function Inspector(props: InspectorProps) {
       )}
 
       <div className="inspector-actions">
+        {props.hasRepairs && (
+          <p className="result-notice">Creating paths again replaces your brush repairs.</p>
+        )}
         {props.isStale && (
           <p className="result-notice" role="status">
             Settings changed. Create cut paths to update the preview and export.

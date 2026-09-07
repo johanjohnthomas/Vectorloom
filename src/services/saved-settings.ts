@@ -20,12 +20,12 @@ const storedSettingsSchema = savedSettingsSchema.extend({ version: z.literal(1) 
 export type SavedSettings = z.infer<typeof savedSettingsSchema>
 
 export const DEFAULT_SETTINGS = {
-  cutMode: "silhouette",
-  colors: 4,
-  detail: 0.58,
-  smoothing: 0.42,
-  mergeShades: 0.6,
-  filledBacking: false,
+  cutMode: "layered",
+  colors: 6,
+  detail: 0.5,
+  smoothing: 0.7,
+  mergeShades: 0.72,
+  filledBacking: true,
   tolerance: 40,
 } satisfies SavedSettings
 

@@ -1,0 +1,76 @@
+.brush-surface {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.brush-surface-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.brush-surface-image,
+.brush-surface-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brush-surface-image {
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.brush-surface-canvas {
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.brush-surface[data-active="true"] .brush-surface-canvas {
+  touch-action: none;
+}
+
+.brush-surface-canvas:focus-visible {
+  outline: 2px dashed var(--amber-bright);
+  outline-offset: -5px;
+}
+
+.brush-surface-marks {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.brush-surface-cursor {
+  fill: color-mix(in srgb, var(--cyan) 16%, transparent);
+  stroke: var(--cyan);
+  stroke-width: 2px;
+  pointer-events: none;
+}
+
+.brush-surface-help,
+.brush-surface-mark-summary {
+  margin: 0;
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.brush-surface-mark-summary {
+  color: var(--paper-muted);
+}
+
+@media (max-width: 560px) {
+  .brush-surface-help,
+  .brush-surface-mark-summary {
+    font-size: 12px;
+  }
+}

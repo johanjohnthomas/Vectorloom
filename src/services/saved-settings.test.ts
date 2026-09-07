@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import {
   cookiePathForBase,
+  DEFAULT_SETTINGS,
   loadSavedSettings,
   type SavedSettings,
   saveSavedSettings,
@@ -64,6 +65,13 @@ function clearCookie(): void {
 }
 
 describe("saved settings", () => {
+  it("starts with a simplified filled layered cut without configuration", () => {
+    expect(DEFAULT_SETTINGS.cutMode).toBe("layered")
+    expect(DEFAULT_SETTINGS.filledBacking).toBe(true)
+    expect(DEFAULT_SETTINGS.colors).toBe(6)
+    expect(DEFAULT_SETTINGS.mergeShades).toBeGreaterThanOrEqual(0.7)
+    expect(DEFAULT_SETTINGS.smoothing).toBeGreaterThanOrEqual(0.6)
+  })
   beforeEach(clearCookie)
   afterEach(clearCookie)
 

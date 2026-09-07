@@ -52,6 +52,11 @@ Flat SVG layers may use colors derived from the uploaded image. Interface status
 
 ## 5. Reusable Primitives and States
 
+- Automatic-first editing: default to layered cuts, up to six colors, strong shade consolidation, smooth curves, and filled backing. Native `details` keeps all numeric tracing controls under Advanced settings, closed initially. Previously saved choices remain usable; a reset action restores recommended defaults.
+- `BrushSurface`: a true image-aligned canvas overlay, round continuous strokes, pointer capture, touch drawing, and keyboard cursor/Space painting. Keep marks use cyan, remove marks use danger, with text labels as well as color. Brush size, undo, and clear are accessible native controls. Box selection remains an alternative.
+- `LayerEditor`: Original and Cut preview share the same image coordinate frame side by side on desktop and stacked on phones. Inspect, Add / connect, Erase, and New color tools sit above them. New color samples the original on the first stroke, creates a layer, and switches to adding to that layer. Existing layer selector/swatches remain the navigation primitive. Edits update real SVG paths and have bounded undo. Rebuilding explicitly warns that manual repairs will be replaced.
+- Repair surfaces use the existing ink-raised/paper/cyan/danger tokens, 12/16px gaps, 14px corners, and 44px touch targets. They scroll in normal document flow rather than squeezing two artwork panels into a fixed-height viewport. No new decorative motion or component dependency is needed.
+
 - `AtlasButton`: primary amber filled, secondary ink-raised, ghost. States: default, hover, pressed, focus-visible, disabled, busy.
 - `StageRail`: a non-interactive four-step progress indicator with connected icon nodes, explicit Done/Current/Next state copy, and a compact horizontal responsive form.
 - `ToolSurface`: raised inspector/canvas surface with 14px radius and one elevation treatment.

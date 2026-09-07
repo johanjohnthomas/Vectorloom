@@ -1,256 +1,81 @@
 import { ShieldCheck } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { composeSvg } from "../domain/svg-layers"
-import { applyAlphaMask, makeEdgeMask, makeSilhouettePixels } from "../domain/vectorize"
-import type { Selection } from "../services/image"
-import {
-  assertSafeDimensions,
-  assertSafeImageFile,
-  ImageInputError,
-  parseImageFile,
-  prepareSelection,
-} from "../services/image"
-import { DEFAULT_SETTINGS, loadSavedSettings, saveSavedSettings } from "../services/saved-settings"
-import { SegmentationError, segmentSubject } from "../services/segment"
-import { type TraceResult, traceImage } from "../services/trace"
-import { CanvasWorkspace } from "./CanvasWorkspace"
-import type { CutMode } from "./Inspector"
+import { useState } from "react"
 import { Inspector } from "./Inspector"
-import { LayerReview } from "./LayerReview"
+import { LayerEditor } from "./LayerEditor"
+import { SelectionWorkspace } from "./SelectionWorkspace"
 import { StageRail } from "./StageRail"
-
-const DEFAULT_SELECTION: Selection = { x: 0.08, y: 0.08, width: 0.84, height: 0.84 }
-
-type Status = { readonly kind: "info" | "success" | "error"; readonly message: string }
+import { useVectorProject } from "./useVectorProject"
+import "./editor.css"
 
 export function Workbench() {
-  const operationId = useRef(0)
-  const [initialSettings] = useState(() => loadSavedSettings() ?? DEFAULT_SETTINGS)
-  const [image, setImage] = useState<ImageBitmap>()
-  const [fileName, setFileName] = useState("Untitled artwork")
-  const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
-  const [cutMode, setCutMode] = useState<CutMode>(initialSettings.cutMode)
-  const [colors, setColors] = useState(initialSettings.colors)
-  const [detail, setDetail] = useState(initialSettings.detail)
-  const [smoothing, setSmoothing] = useState(initialSettings.smoothing)
-  const [mergeShades, setMergeShades] = useState(initialSettings.mergeShades)
-  const [filledBacking, setFilledBacking] = useState(initialSettings.filledBacking)
-  const [tolerance, setTolerance] = useState(initialSettings.tolerance)
-  const [selectionInset, setSelectionInset] = useState(8)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [status, setStatus] = useState<Status>({
-    kind: "info",
-    message: "Choose an image, then draw a box around the subject.",
-  })
-  const [result, setResult] = useState<TraceResult>()
-  const [selectedLayer, setSelectedLayer] = useState<number>()
-  const [generatedSettings, setGeneratedSettings] = useState("")
-  const [svgUrl, setSvgUrl] = useState<string>()
-  const analysis = result?.analysis
-  const settings = {
-    colors: cutMode === "silhouette" ? 1 : colors,
-    detail,
-    smoothing,
-    mergeShades: cutMode === "silhouette" ? 0 : mergeShades,
-    filledBacking: cutMode === "layered" && filledBacking,
-  }
-  const settingsKey = JSON.stringify({ settings, cutMode, selection, tolerance })
-  const isStale = result !== undefined && generatedSettings !== settingsKey
-  const previewLayer = selectedLayer === undefined ? undefined : result?.layers[selectedLayer]
-  const svg = result && (previewLayer ? composeSvg([previewLayer], result) : result.svg)
-
-  useEffect(() => {
-    if (svg === undefined) {
-      setSvgUrl(undefined)
-      return
-    }
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
-    setSvgUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [svg])
-
-  useEffect(() => () => image?.close(), [image])
-
-  async function handleFile(input: unknown): Promise<void> {
-    try {
-      const file = parseImageFile(input)
-      await assertSafeImageFile(file)
-      const bitmap = await createImageBitmap(file)
-      try {
-        assertSafeDimensions(bitmap.width, bitmap.height)
-      } catch (error) {
-        bitmap.close()
-        throw error
-      }
-      operationId.current += 1
-      setImage(bitmap)
-      setFileName(file.name.replace(/\.[^.]+$/u, ""))
-      setSelection(DEFAULT_SELECTION)
-      setSelectionInset(8)
-      setResult(undefined)
-      setSelectedLayer(undefined)
-      setStatus({
-        kind: "success",
-        message: "Image ready. Draw tightly around the subject you want to keep.",
-      })
-    } catch (error) {
-      if (error instanceof ImageInputError) {
-        setStatus({ kind: "error", message: error.reason })
-        return
-      }
-      throw error
-    }
-  }
-
-  async function vectorize(): Promise<void> {
-    if (image === undefined) return
-    const activeOperation = operationId.current + 1
-    operationId.current = activeOperation
-    setIsProcessing(true)
-    setStatus({ kind: "info", message: "Finding the subject and mapping cut paths…" })
-    try {
-      const prepared = prepareSelection(image, image.width, image.height, selection)
-      let mask: Float32Array
-      let usedFallback = false
-      try {
-        mask = await segmentSubject(prepared.canvas)
-      } catch (error) {
-        if (!(error instanceof SegmentationError)) throw error
-        mask = makeEdgeMask(prepared.imageData, tolerance)
-        usedFallback = true
-      }
-      const tracedImage =
-        cutMode === "silhouette"
-          ? new ImageData(
-              Uint8ClampedArray.from(makeSilhouettePixels(prepared.imageData.data, mask, 0.42)),
-              prepared.imageData.width,
-              prepared.imageData.height,
-            )
-          : applyAlphaMask(prepared.imageData, mask, 0.42)
-      const traced = traceImage(tracedImage, settings)
-      if (operationId.current !== activeOperation) return
-      setResult(traced)
-      setSelectedLayer(undefined)
-      setGeneratedSettings(settingsKey)
-      setStatus({
-        kind: "success",
-        message: usedFallback
-          ? "Cut paths created with edge isolation. Smart isolation was unavailable."
-          : "Subject isolated and cut paths created.",
-      })
-    } catch (error) {
-      if (error instanceof Error) {
-        setStatus({
-          kind: "error",
-          message: "Vectorization failed. Try a smaller selection or lower detail.",
-        })
-        return
-      }
-      throw error
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  function download(): void {
-    if (result === undefined || isStale || result.layers.length === 0) return
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(new Blob([result.svg], { type: "image/svg+xml" }))
-    link.href = url
-    link.download = `${fileName || "vectorloom"}-cut.svg`
-    link.click()
-    URL.revokeObjectURL(url)
-    const saved = saveSavedSettings({
-      cutMode,
-      colors,
-      detail,
-      smoothing,
-      mergeShades,
-      filledBacking,
-      tolerance,
-    })
-    setStatus({
-      kind: "success",
-      message: saved
-        ? "SVG downloaded. Your cut settings were saved for next time."
-        : "SVG downloaded. Your browser could not save cut settings.",
-    })
-  }
-
-  const currentStage = isProcessing ? 2 : analysis ? 3 : image ? 1 : 0
-
+  const project = useVectorProject()
+  const [reselecting, setReselecting] = useState(false)
+  const result = project.output.result
+  const currentStage = project.isProcessing ? 2 : result ? 3 : project.source ? 1 : 0
+  const showEditor = result !== undefined && !reselecting
   return (
-    <main className="app-shell">
+    <main className="app-shell workbench-flow">
       <StageRail current={currentStage} />
       <section className="workspace">
         <header className="workspace-header">
           <div>
             <p className="coordinate">VECTORLOOM / LOCAL WORKSPACE</p>
-            <h1>{fileName}</h1>
+            <h1>{project.source?.name ?? "Untitled artwork"}</h1>
           </div>
           <span className="privacy">
             <ShieldCheck aria-hidden="true" />
             Your image stays here
           </span>
         </header>
-        <CanvasWorkspace
-          image={image}
-          selection={selection}
-          status={status}
-          isProcessing={isProcessing}
-          svgUrl={svgUrl}
-          previewLabel={
-            previewLayer
-              ? `Layer ${(selectedLayer ?? 0) + 1} · ${previewLayer.color}`
-              : "All layers"
-          }
-          previewControls={
-            result && (
-              <LayerReview
-                layers={result.layers}
-                selected={selectedLayer}
-                onSelect={setSelectedLayer}
-              />
-            )
-          }
-          onFile={(input) => void handleFile(input)}
-          onSelectionChange={setSelection}
-          onCustomSelection={() => setSelectionInset(0)}
-          onResetSelection={() => {
-            setSelection(DEFAULT_SELECTION)
-            setSelectionInset(8)
-          }}
-        />
+        {showEditor ? (
+          <LayerEditor project={project} onReselect={() => setReselecting(true)} />
+        ) : (
+          <>
+            <SelectionWorkspace project={project} />
+            {result && (
+              <button
+                type="button"
+                className="back-to-layers"
+                onClick={() => setReselecting(false)}
+              >
+                Back to layers
+              </button>
+            )}
+          </>
+        )}
       </section>
       <Inspector
-        hasImage={image !== undefined}
-        isProcessing={isProcessing}
-        cutMode={cutMode}
-        colors={colors}
-        detail={detail}
-        smoothing={smoothing}
-        mergeShades={mergeShades}
-        filledBacking={filledBacking}
-        onMergeShadesChange={setMergeShades}
-        onFilledBackingChange={setFilledBacking}
-        isStale={isStale}
+        {...project.preferences}
+        hasImage={project.source !== undefined}
+        isProcessing={project.isProcessing}
+        selectionInset={Math.round(project.selection.x * 100)}
+        analysis={result?.analysis}
+        isStale={project.isStale}
         warnings={result?.warnings ?? []}
-        canDownload={!isStale && !isProcessing && (result?.layers.length ?? 0) > 0}
-        tolerance={tolerance}
-        selectionInset={selectionInset}
-        analysis={analysis}
-        onCutModeChange={setCutMode}
-        onColorsChange={setColors}
-        onDetailChange={setDetail}
-        onSmoothingChange={setSmoothing}
-        onToleranceChange={setTolerance}
+        canDownload={project.canDownload}
+        hasRepairs={project.output.hasRepairs}
+        onResetSettings={project.resetSettings}
+        onCutModeChange={(cutMode) => project.changeSettings({ cutMode })}
+        onColorsChange={(colors) => project.changeSettings({ colors })}
+        onDetailChange={(detail) => project.changeSettings({ detail })}
+        onSmoothingChange={(smoothing) => project.changeSettings({ smoothing })}
+        onMergeShadesChange={(mergeShades) => project.changeSettings({ mergeShades })}
+        onFilledBackingChange={(filledBacking) => project.changeSettings({ filledBacking })}
+        onToleranceChange={(tolerance) => project.changeSettings({ tolerance })}
         onSelectionInsetChange={(value) => {
           const inset = value / 100
-          setSelectionInset(value)
-          setSelection({ x: inset, y: inset, width: 1 - inset * 2, height: 1 - inset * 2 })
+          project.changeSelection({
+            x: inset,
+            y: inset,
+            width: 1 - inset * 2,
+            height: 1 - inset * 2,
+          })
         }}
-        onVectorize={() => void vectorize()}
-        onDownload={download}
+        onVectorize={() => {
+          setReselecting(false)
+          void project.vectorize()
+        }}
+        onDownload={project.download}
       />
     </main>
   )
