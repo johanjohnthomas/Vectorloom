@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Inferred from the explicit brief: React, Vite, and TypeScript, deployed as a static GitHub Pages application. Image processing is local-first and runs in the browser.
+React, Vite, and TypeScript, deployed as a static GitHub Pages application at https://johanjohnthomas.github.io/Vectorloom/. Image processing runs locally in the browser.
 
 ## Users
 
@@ -24,26 +24,31 @@ Vectorloom treats subject isolation and cut-file preparation as one guided workf
 
 ## Operating Context
 
-Users arrive with personal artwork, photographs, product images, or character art. They work on desktop or tablet, may use touch or a trackpad, and ultimately upload the downloaded SVG into Cricut Design Space or another cutting workflow.
+Users arrive with personal artwork, photographs, product images, or character art. They work on desktop, tablet, or phone using touch, a mouse, a trackpad, or keyboard controls, and import the downloaded SVG into Cricut Design Space or another cutting workflow.
 
 ## Capabilities and Constraints
 
 - Upload PNG, JPEG, or WebP images.
-- Identify a subject from a user-selected region or focal point and remove the background.
-- Offer a dependable single-color silhouette and a multi-color layered trace.
-- Let users tune palette size, detail, smoothing, and background-removal tolerance.
+- Isolate a subject automatically or guide MediaPipe with keep/remove brush marks; retain rectangular selection as an alternative.
+- Preserve existing transparency for unmarked transparent artwork, and provide an explicitly reported edge-isolation fallback when smart isolation is unavailable.
+- Create single-color silhouettes or layered traces with automatic-first defaults and advanced tuning.
+- Consolidate related shades while protecting neutral near-black details from colored shadows.
+- Fill and connect backing beneath upper colors where the stacking order allows, while preserving transparent openings.
+- Compare the original with combined or individual layers and repair actual export paths using Add / connect, Erase, New color, and bounded undo.
+- Support combined-view erasure through all layers and stroke-start color targeting for combined-view additions.
 - Export path-only SVG with flat fills and a valid `viewBox`.
 - Keep image processing in the browser for privacy and GitHub Pages compatibility.
 - Clearly warn that detailed photographs, shadows, gradients, and tiny islands require simplification for reliable cutting.
-- Advanced foundation: swap the lightweight selection engine for MediaPipe Interactive Segmenter or SAM-class models without replacing the editor workflow.
+- Remember downloaded cut settings in a cookie without storing images or repair history.
+- Require users to download their SVG before leaving; persistent projects, material simulation, and automatic recognition of every shadow are outside the product's current capabilities.
 
 ## Brand Commitments
 
-The product name is Vectorloom. The interface should use Impeccable design craft and purposeful Motion interactions. KokonutUI patterns may be adapted as source material; Bklit methodology applies when a genuine data visualization is needed, but neither should force unrelated dependencies.
+The product name is Vectorloom. Its maker-focused visual system follows Impeccable design craft and uses purposeful Motion transitions. Existing reusable controls take precedence over adding component libraries. KokonutUI and Bklit remain eligible sources when a feature genuinely benefits from them, not dependencies claimed by the current application.
 
 ## Evidence on Hand
 
-No customer testimonials, usage metrics, logos, or proprietary image assets were supplied. The product must not fabricate them. The user's Lightning McQueen example is a use case, not a license to ship copyrighted character imagery.
+The repository includes automated domain and integration tests plus browser scenarios for isolation, repairs, palette handling, export, saved preferences, and responsive layouts. These checks do not constitute physical Cricut or material certification. Do not invent testimonials, usage metrics, endorsements, or rights to third-party artwork. Vectorloom is independent of Cricut.
 
 ## Product Principles
 

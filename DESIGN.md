@@ -12,7 +12,7 @@
 
 Vectorloom is a maker’s star atlas: a quiet midnight drafting surface where the uploaded subject is the brightest object and each generated cut layer becomes an observable plate. The interface feels precise, tactile, and patient rather than “AI magical.”
 
-The memorable moment is the subject-selection rectangle resolving into a clean constellation of vector layers while the complexity reading changes from “dense sky” to “ready to cut.”
+The central experience is a brush-guided subject resolving into editable color layers, with an original-to-vector comparison and a clear cut-complexity reading.
 
 ## 2. Color Tokens
 
@@ -65,7 +65,7 @@ Flat SVG layers may use colors derived from the uploaded image. Interface status
 - `SegmentCanvas`: source image, crop/subject rectangle, drag handles, keyboard-adjustable selection, loading overlay, and vector preview.
 - `ControlGroup`: label, plain-language help, native range/select control, and value output.
 - `CutModePicker`: silhouette and layered options with icon plus explanatory text.
-- Layered controls: maximum colors, adjustable shade merging, and an opt-in filled backing checkbox. Filled backing covers enclosed color details while preserving transparent openings; exported groups follow bottom-to-top assembly order.
+- Layered controls: maximum colors, adjustable shade merging, and a filled backing checkbox enabled in the recommended defaults. Filled backing covers enclosed color details while preserving transparent openings; exported groups follow bottom-to-top assembly order.
 - `LayerReview`: preview toolbar with all-layers view, previous/next controls, a native layer selector, and color swatches. Selected layers keep the full artwork coordinate frame. Reviewing a layer does not remove other layers from the export. Controls use existing 44px targets, 4/8/12/16px spacing, ink/paper/amber tokens and visible focus treatment.
 - At tablet/phone widths, the preview participates in document flow with at least 240px artwork height so eight-layer controls cannot squeeze the image. Phone controls use a full-width All layers row and a previous/selector/next row; the native selector uses 16px type to avoid focus zoom on iOS.
 - Updated settings require creating cut paths again; stale previews are labeled and their export disabled until rebuilt. Layer warnings appear with the generated result.
@@ -99,5 +99,5 @@ Primitive showcase is the editor’s initial empty state: every button, upload, 
 - Error and readiness states include text and icon, not color alone.
 - Canvas selection has an equivalent numeric inset control and reset action.
 - At 200 percent zoom the editor becomes document flow; no two-dimensional pan is required to reach controls.
-- Accepted MVP debt: interactive segmentation depends on downloading a MediaPipe model at first use; when unavailable, the manual rectangular isolation and image-alpha fallback remain functional and are disclosed rather than hidden.
-- Accepted MVP debt: complex manual mask painting and true multi-object SAM selection are roadmap capabilities, not simulated in the first release.
+- Operating constraint: smart isolation downloads a MediaPipe model at first use; if it cannot run, edge isolation and brush-mark correction remain available and the fallback is disclosed. Unmarked transparent artwork can use its original alpha.
+- Operating constraint: brush selection and layer repair are implemented; persistent project storage, material-aware simulation, and a SAM-based multi-object mode are not provided. The interface must not imply these capabilities.
