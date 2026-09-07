@@ -412,7 +412,8 @@ button:disabled {
 
 .vector-preview img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  align-self: stretch;
   min-height: 0;
   object-fit: contain;
 }
