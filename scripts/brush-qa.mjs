@@ -146,6 +146,11 @@ try {
   const touchEdited = await inspect(await download("touch-edited"))
   assert.equal(connected.touchPoint[3], 0)
   assert.deepEqual(touchEdited.touchPoint, [226, 51, 36, 255])
+  // All-layers Add intentionally no-ops when the stroke starts on the blank
+  // preview. Select a concrete layer before the keyboard regression so that
+  // keyboard painting still exercises the original single-layer behavior.
+  await page.getByLabel("Preview layer", { exact: true }).selectOption("0")
+  assert.equal(await page.getByLabel("Preview layer", { exact: true }).inputValue(), "0")
   await page.getByRole("application", { name: "Layer repair brush", exact: true }).focus()
   for (let step = 0; step < 10; step += 1) {
     await page.keyboard.press("ArrowLeft")
