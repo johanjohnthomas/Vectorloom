@@ -61,6 +61,7 @@ Flat SVG layers may use colors derived from the uploaded image. Interface status
 - `CutModePicker`: silhouette and layered options with icon plus explanatory text.
 - Layered controls: maximum colors, adjustable shade merging, and an opt-in filled backing checkbox. Filled backing covers enclosed color details while preserving transparent openings; exported groups follow bottom-to-top assembly order.
 - `LayerReview`: preview toolbar with all-layers view, previous/next controls, a native layer selector, and color swatches. Selected layers keep the full artwork coordinate frame. Reviewing a layer does not remove other layers from the export. Controls use existing 44px targets, 4/8/12/16px spacing, ink/paper/amber tokens and visible focus treatment.
+- At tablet/phone widths, the preview participates in document flow with at least 240px artwork height so eight-layer controls cannot squeeze the image. Phone controls use a full-width All layers row and a previous/selector/next row; the native selector uses 16px type to avoid focus zoom on iOS.
 - Updated settings require creating cut paths again; stale previews are labeled and their export disabled until rebuilt. Layer warnings appear with the generated result.
 - `ComplexityMeter`: score, verbal rating, path/layer counts, and corrective advice. Must expose the same information as text.
 - `StatusToast`: short success/error feedback with icon and recovery action when applicable.

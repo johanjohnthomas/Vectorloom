@@ -774,6 +774,22 @@ button:disabled {
   .inspector-actions {
     grid-template-columns: 1fr 1fr;
   }
+  .canvas-stage:has(.vector-preview) {
+    display: block;
+    min-height: 0;
+  }
+  .canvas-stage:has(.vector-preview) > canvas {
+    display: none;
+  }
+  .vector-preview {
+    position: relative;
+    inset: auto;
+    margin: 12px;
+    grid-template-rows: auto auto auto;
+  }
+  .vector-preview img {
+    height: clamp(240px, 60vw, 420px);
+  }
 }
 
 @media (max-width: 560px) {
@@ -834,6 +850,17 @@ button:disabled {
   }
   .inspector-actions {
     grid-template-columns: 1fr;
+  }
+  .layer-review-controls {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+  .layer-review-controls > button:first-child {
+    grid-column: 1 / -1;
+  }
+  .layer-review select {
+    width: 100%;
+    font-size: 16px;
   }
 }
 
