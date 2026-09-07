@@ -14,24 +14,36 @@ type StageRailProps = {
 
 export function StageRail({ current }: StageRailProps) {
   return (
-    <nav className="stage-rail" aria-label="Conversion stages">
+    <aside className="stage-rail" aria-label="Conversion progress">
       <svg className="mark" viewBox="0 0 64 64" role="img" aria-label="Vectorloom">
         <path className="mark-field" d="M0 0h64v64H0z" />
         <path className="mark-frame" d="M32 6 58 32 32 58 6 32Z" />
         <path className="mark-weave" d="m20 22 10 24 4-12 10-12h-7l-5 7-3-7Z" />
       </svg>
+      <div className="process-intro">
+        <strong>4-step process</strong>
+        <span>Upload once. The next stages follow in order.</span>
+      </div>
       <ol>
         {STAGES.map(({ label, icon: Icon }, index) => {
           const isCurrent = index === current
           const isComplete = index < current
+          const status = isCurrent ? "Current" : isComplete ? "Done" : "Next"
           return (
-            <li key={label}>
+            <li
+              key={label}
+              data-complete={isComplete}
+              aria-current={isCurrent ? "step" : undefined}
+            >
               <div className="stage-step" data-current={isCurrent} data-complete={isComplete}>
                 <span className="stage-icon" aria-hidden="true">
                   {isCurrent && <m.span className="stage-orbit" layoutId="stage-orbit" />}
                   {isComplete ? <Check /> : <Icon />}
                 </span>
-                <span className="stage-label">{label}</span>
+                <span className="stage-copy">
+                  <span className="stage-label">{label}</span>
+                  <span className="stage-status">{status}</span>
+                </span>
               </div>
             </li>
           )
@@ -42,6 +54,6 @@ export function StageRail({ current }: StageRailProps) {
         <br />
         No uploads
       </p>
-    </nav>
+    </aside>
   )
 }

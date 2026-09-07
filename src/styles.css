@@ -83,7 +83,7 @@ button:disabled {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) 320px;
+  grid-template-columns: 152px minmax(0, 1fr) 320px;
   height: 100vh;
   overflow: hidden;
 }
@@ -91,9 +91,9 @@ button:disabled {
 .stage-rail {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 32px;
-  padding: 16px 8px;
+  align-items: stretch;
+  gap: 24px;
+  padding: 16px 12px;
   border-right: 1px solid var(--line-warm);
   background: color-mix(in srgb, var(--ink) 92%, transparent);
 }
@@ -101,6 +101,7 @@ button:disabled {
 .mark {
   width: 48px;
   height: 48px;
+  align-self: center;
   flex: 0 0 auto;
 }
 
@@ -118,19 +119,55 @@ button:disabled {
   fill: var(--paper);
 }
 
+.process-intro {
+  display: grid;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.process-intro strong {
+  color: var(--paper);
+  font-size: 11px;
+}
+
+.process-intro span {
+  color: var(--fog);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
 .stage-rail ol {
   display: grid;
-  gap: 24px;
+  gap: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.stage-rail li {
+  position: relative;
+}
+
+.stage-rail li:not(:last-child)::after {
+  position: absolute;
+  top: 44px;
+  left: 21px;
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  content: "";
+}
+
+.stage-rail li[data-complete="true"]::after {
+  background: color-mix(in srgb, var(--lime) 48%, var(--line));
+}
+
 .stage-step {
   display: grid;
-  justify-items: center;
-  gap: 4px;
-  width: 64px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
   color: var(--fog);
   font:
     500 10px "IBM Plex Mono",
@@ -152,10 +189,26 @@ button:disabled {
 }
 
 .stage-label {
+  color: currentColor;
   line-height: 1.4;
+}
+
+.stage-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stage-status {
+  color: var(--fog);
+  font-size: 8px;
+  line-height: 1.3;
 }
 .stage-step[data-current="true"] {
   color: var(--paper);
+}
+.stage-step[data-current="true"] .stage-status {
+  color: var(--amber-bright);
 }
 .stage-step[data-complete="true"] {
   color: var(--lime);
@@ -616,13 +669,32 @@ button:disabled {
     border-right: 0;
     border-bottom: 1px solid var(--line-warm);
   }
+  .process-intro {
+    display: none;
+  }
   .stage-rail ol {
     display: flex;
     gap: 4px;
   }
+  .stage-rail li:not(:last-child)::after {
+    top: 21px;
+    left: 51px;
+    width: 18px;
+    height: 1px;
+  }
   .stage-step {
+    grid-template-columns: 1fr;
+    gap: 4px;
     width: 58px;
     font-size: 8px;
+    justify-items: center;
+  }
+  .stage-copy {
+    justify-items: center;
+  }
+  .stage-status {
+    font-size: 7px;
+    line-height: 1;
   }
   .local-note {
     display: none;
@@ -655,6 +727,10 @@ button:disabled {
   .stage-step {
     width: 50px;
     font-size: 7px;
+  }
+  .stage-rail li:not(:last-child)::after {
+    left: 47px;
+    width: 6px;
   }
   .workspace {
     min-height: auto;

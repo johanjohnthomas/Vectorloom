@@ -45,7 +45,7 @@ Flat SVG layers may use colors derived from the uploaded image. Interface status
 
 - Base unit: 4 pixels.
 - Scale: 4, 8, 12, 16, 24, 32, 48, 64.
-- Desktop editor: 88px stage rail, flexible canvas, 320px inspector.
+- Desktop editor: 152px passive progress rail, flexible canvas, 320px inspector.
 - Tablet: compact horizontal stage strip, canvas, inspector below.
 - Mobile: single-column flow with the canvas first and controls grouped in a bottom workbench.
 - Interactive targets are at least 44 by 44 pixels. The central work surface owns scrolling; controls never overlap the artwork.
@@ -53,7 +53,7 @@ Flat SVG layers may use colors derived from the uploaded image. Interface status
 ## 5. Reusable Primitives and States
 
 - `AtlasButton`: primary amber filled, secondary ink-raised, ghost. States: default, hover, pressed, focus-visible, disabled, busy.
-- `StageRail`: four named steps with icon, ordinal, current/completed state, and text label.
+- `StageRail`: a non-interactive four-step progress indicator with connected icon nodes, explicit Done/Current/Next state copy, and a compact horizontal responsive form.
 - `ToolSurface`: raised inspector/canvas surface with 14px radius and one elevation treatment.
 - `UploadField`: drop target, file input, empty/dragging/loaded/error states.
 - `SegmentCanvas`: source image, crop/subject rectangle, drag handles, keyboard-adjustable selection, loading overlay, and vector preview.
