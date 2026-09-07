@@ -35,15 +35,16 @@ try {
     buffer: Buffer.from(fixture, "base64"),
   })
   await page.getByText("Image ready", { exact: false }).waitFor()
-  await page.getByLabel("Subject frame inset").focus()
-  await page.keyboard.press("Home")
+  await page.getByText("Advanced settings", { exact: true }).click()
   await page.getByRole("button", { name: "Layered", exact: false }).click()
   await page.getByLabel("Maximum colors").focus()
   await page.keyboard.press("End")
+  await page.getByLabel("Filled backing layers").uncheck()
 
   async function create() {
     await page.getByRole("button", { name: "Create cut paths" }).click()
-    await page.locator(".processing").waitFor({ state: "detached", timeout: 120000 })
+    await page.getByRole("region", { name: "Layer repair workspace" }).waitFor({ timeout: 120000 })
+    await page.getByText(/Cut paths created/u).waitFor({ timeout: 120000 })
     await page.getByRole("button", { name: "Download SVG" }).waitFor()
     assert.equal(await page.getByRole("button", { name: "Download SVG" }).isEnabled(), true)
     await page.locator(".inspector").evaluate((node) => {

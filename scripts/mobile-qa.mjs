@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { chromium, webkit } from "playwright"
 
-const url = process.env.VECTORLOOM_BASE_URL ?? "https://johanjohnthomas.github.io/Vectorloom/"
+const url = process.env.VECTORLOOM_BASE_URL ?? "http://127.0.0.1:4180/"
 const safari = process.env.VECTORLOOM_BROWSER === "webkit"
 const directory = safari ? ".omo/evidence/mobile-layers-webkit" : ".omo/evidence/mobile-layers"
 await mkdir(directory, { recursive: true })
@@ -44,10 +44,10 @@ try {
     mimeType: "image/png",
     buffer: Buffer.from(image, "base64"),
   })
-  await page.getByText("Image ready", { exact: false }).waitFor()
-  const canvas = page.locator("canvas")
-  await canvas.scrollIntoViewIfNeeded()
-  const bounds = await canvas.boundingBox()
+  const subjectBrush = page.getByRole("application", { name: "Subject brush", exact: true })
+  await subjectBrush.waitFor()
+  await subjectBrush.scrollIntoViewIfNeeded()
+  const bounds = await subjectBrush.boundingBox()
   assert.ok(bounds)
   if (!safari) {
     const cdp = await page.context().newCDPSession(page)
@@ -56,10 +56,18 @@ try {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] })
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [end] })
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
-    assert.equal(await page.getByLabel("Subject frame inset").inputValue(), "0")
+    await cdp.detach()
+  } else {
+    await page.mouse.move(bounds.x + bounds.width * 0.4, bounds.y + bounds.height * 0.4)
+    await page.mouse.down()
+    await page.mouse.move(bounds.x + bounds.width * 0.6, bounds.y + bounds.height * 0.6, {
+      steps: 8,
+    })
+    await page.mouse.up()
   }
+  await page.getByText(/1 keep mark/u).waitFor()
+  await page.getByText("Advanced settings", { exact: true }).tap()
   await page.getByRole("button", { name: "Layered", exact: false }).tap()
-  await page.getByRole("button", { name: "Reset selection" }).tap()
   async function rangeTap(label, right) {
     const input = page.getByLabel(label, { exact: true })
     await input.scrollIntoViewIfNeeded()
@@ -67,14 +75,14 @@ try {
     assert.ok(box)
     await page.touchscreen.tap(box.x + (right ? box.width - 2 : 2), box.y + box.height / 2)
   }
-  await rangeTap("Subject frame inset", false)
   await rangeTap("Maximum colors", true)
   await rangeTap("Merge similar shades", false)
   assert.equal(await page.getByLabel("Maximum colors").inputValue(), "8")
   assert.equal(await page.getByLabel("Merge similar shades").inputValue(), "0")
-  await page.getByLabel("Filled backing layers").tap()
+  assert.equal(await page.getByLabel("Filled backing layers").isChecked(), true)
   await page.getByRole("button", { name: "Create cut paths" }).tap()
-  await page.locator(".processing").waitFor({ state: "detached", timeout: 120000 })
+  await page.getByRole("region", { name: "Layer repair workspace" }).waitFor({ timeout: 120000 })
+  await page.getByText(/Cut paths created/u).waitFor({ timeout: 120000 })
   await page.getByLabel("Layer review", { exact: true }).waitFor()
   assert.equal(await page.locator(".layer-swatches button").count(), 8)
   const views = []
@@ -90,10 +98,11 @@ try {
     await page.getByLabel("Preview layer", { exact: true }).selectOption("7")
     assert.equal(await page.getByLabel("Preview layer", { exact: true }).inputValue(), "7")
     await page.getByRole("button", { name: "All layers", exact: true }).tap()
-    await page.locator(".vector-preview").scrollIntoViewIfNeeded()
+    await page.locator(".layer-editor").scrollIntoViewIfNeeded()
     const geometry = await page.evaluate(() => {
       const selector = document.querySelector(".layer-review select")?.getBoundingClientRect()
-      const image = document.querySelector(".vector-preview img")?.getBoundingClientRect()
+      const images = [...document.querySelectorAll(".image-comparison .brush-surface-image")]
+      const image = images.at(-1)?.getBoundingClientRect()
       return {
         overflow: document.documentElement.scrollWidth - innerWidth,
         selectorWidth: selector?.width ?? 0,

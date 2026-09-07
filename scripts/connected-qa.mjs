@@ -31,23 +31,25 @@ try {
     buffer: Buffer.from(fixture, "base64"),
   })
   await page.getByText("Image ready", { exact: false }).waitFor()
+  await page.getByText("Advanced settings", { exact: true }).click()
   async function range(label, value) {
     await page.getByLabel(label, { exact: true }).fill(String(value))
   }
   await page.getByRole("button", { name: "Layered", exact: false }).click()
-  await range("Subject frame inset", 0)
   await range("Maximum colors", 6)
   await range("Merge similar shades", 37)
   await range("Detail kept", 71)
   await range("Curve smoothing", 56)
   await range("Background tolerance", 33)
+  await page.getByLabel("Filled backing layers").uncheck()
   assert.equal(
     (await context.cookies()).filter((cookie) => cookie.name.includes("vectorloom")).length,
     0,
   )
   async function create() {
     await page.getByRole("button", { name: "Create cut paths" }).click()
-    await page.locator(".processing").waitFor({ state: "detached", timeout: 120000 })
+    await page.getByRole("region", { name: "Layer repair workspace" }).waitFor({ timeout: 120000 })
+    await page.getByText(/Cut paths created/u).waitFor({ timeout: 120000 })
     assert.equal(await page.getByRole("button", { name: "Download SVG" }).isEnabled(), true)
   }
   async function download(name) {
@@ -98,11 +100,21 @@ try {
     await page.setViewportSize({ width, height: 1000 })
     await page.getByLabel("Preview layer", { exact: true }).scrollIntoViewIfNeeded()
     const contained = await page.evaluate(() => {
-      const panel = document.querySelector(".vector-preview").getBoundingClientRect()
-      const artwork = document.querySelector(".vector-preview img").getBoundingClientRect()
-      return artwork.bottom <= panel.bottom && artwork.top >= panel.top
+      const panes = [...document.querySelectorAll(".comparison-pane")]
+      const artwork = [...document.querySelectorAll(".image-comparison .brush-surface-image")]
+      if (panes.length !== 2 || artwork.length !== 2) return false
+      const [original, layer] = artwork.map((image) => image.getBoundingClientRect())
+      const [originalPane, layerPane] = panes.map((pane) => pane.getBoundingClientRect())
+      return (
+        original.width === layer.width &&
+        original.height === layer.height &&
+        original.left >= originalPane.left &&
+        original.right <= originalPane.right &&
+        layer.left >= layerPane.left &&
+        layer.right <= layerPane.right
+      )
     })
-    assert.equal(contained, true, `${width}: artwork must fit inside the preview panel`)
+    assert.equal(contained, true, `${width}: original and layer previews must align in their panes`)
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,
@@ -118,6 +130,7 @@ try {
   assert.ok(!cookie.value.includes("connected-panels"))
   await range("Detail kept", 22)
   await page.reload({ waitUntil: "networkidle" })
+  await page.getByText("Advanced settings", { exact: true }).click()
   const restored = {}
   for (const [label, expected] of Object.entries({
     "Maximum colors": "6",
@@ -125,7 +138,6 @@ try {
     "Detail kept": "71",
     "Curve smoothing": "56",
     "Background tolerance": "33",
-    "Subject frame inset": "8",
   })) {
     restored[label] = await page.getByLabel(label, { exact: true }).inputValue()
     assert.equal(restored[label], expected)
@@ -144,14 +156,14 @@ try {
     })
   })
   await page.reload({ waitUntil: "networkidle" })
-  assert.equal(await page.getByLabel("Detail kept").inputValue(), "58")
+  await page.getByText("Advanced settings", { exact: true }).click()
+  assert.equal(await page.getByLabel("Detail kept").inputValue(), "50")
   await page.setInputFiles('input[type="file"]', {
     name: "blocked-cookie.png",
     mimeType: "image/png",
     buffer: Buffer.from(fixture, "base64"),
   })
   await page.getByText("Image ready", { exact: false }).waitFor()
-  await range("Subject frame inset", 0)
   await create()
   await download("blocked-cookie")
   await page.getByText("SVG downloaded. Your browser could not save cut settings.").waitFor()
