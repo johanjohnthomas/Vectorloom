@@ -10,6 +10,7 @@ import {
   parseImageFile,
   prepareSelection,
 } from "../services/image"
+import { DEFAULT_SETTINGS, loadSavedSettings, saveSavedSettings } from "../services/saved-settings"
 import { SegmentationError, segmentSubject } from "../services/segment"
 import { type TraceResult, traceImage } from "../services/trace"
 import { CanvasWorkspace } from "./CanvasWorkspace"
@@ -24,16 +25,17 @@ type Status = { readonly kind: "info" | "success" | "error"; readonly message: s
 
 export function Workbench() {
   const operationId = useRef(0)
+  const [initialSettings] = useState(() => loadSavedSettings() ?? DEFAULT_SETTINGS)
   const [image, setImage] = useState<ImageBitmap>()
   const [fileName, setFileName] = useState("Untitled artwork")
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
-  const [cutMode, setCutMode] = useState<CutMode>("silhouette")
-  const [colors, setColors] = useState(4)
-  const [detail, setDetail] = useState(0.58)
-  const [smoothing, setSmoothing] = useState(0.42)
-  const [mergeShades, setMergeShades] = useState(0.6)
-  const [filledBacking, setFilledBacking] = useState(false)
-  const [tolerance, setTolerance] = useState(40)
+  const [cutMode, setCutMode] = useState<CutMode>(initialSettings.cutMode)
+  const [colors, setColors] = useState(initialSettings.colors)
+  const [detail, setDetail] = useState(initialSettings.detail)
+  const [smoothing, setSmoothing] = useState(initialSettings.smoothing)
+  const [mergeShades, setMergeShades] = useState(initialSettings.mergeShades)
+  const [filledBacking, setFilledBacking] = useState(initialSettings.filledBacking)
+  const [tolerance, setTolerance] = useState(initialSettings.tolerance)
   const [selectionInset, setSelectionInset] = useState(8)
   const [isProcessing, setIsProcessing] = useState(false)
   const [status, setStatus] = useState<Status>({
@@ -158,6 +160,21 @@ export function Workbench() {
     link.download = `${fileName || "vectorloom"}-cut.svg`
     link.click()
     URL.revokeObjectURL(url)
+    const saved = saveSavedSettings({
+      cutMode,
+      colors,
+      detail,
+      smoothing,
+      mergeShades,
+      filledBacking,
+      tolerance,
+    })
+    setStatus({
+      kind: "success",
+      message: saved
+        ? "SVG downloaded. Your cut settings were saved for next time."
+        : "SVG downloaded. Your browser could not save cut settings.",
+    })
   }
 
   const currentStage = isProcessing ? 2 : analysis ? 3 : image ? 1 : 0
