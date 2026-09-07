@@ -1,3 +1,6 @@
+import { connectBackingLayers } from "./connected-backing"
+import { findCyclicIds, topologicalOrder } from "./layer-order"
+
 export type LayerMask = {
   readonly color: string
   readonly mask: Uint8Array
@@ -33,8 +36,12 @@ export function buildLayerMasks(image: RasterImage, options: LayerMaskOptions): 
 
   const raster = labelPixels(image, options.smoothing)
   const activeColors = raster.colors
-    .map((color, id) => ({ color, id }))
-    .filter(({ id }) => raster.labels.includes(id))
+    .map((color, id) => ({
+      color,
+      id,
+      area: raster.labels.reduce((sum, value) => sum + Number(value === id), 0),
+    }))
+    .filter(({ area }) => area > 0)
   if (activeColors.length === 0) return { layers: [], warnings: [] }
 
   const exactMasks = new Map<number, Uint8Array>()
@@ -63,7 +70,7 @@ export function buildLayerMasks(image: RasterImage, options: LayerMaskOptions): 
   const warnings: string[] = []
   if (cyclicIds.size > 0) {
     warnings.push(
-      "Some colors overlap in both directions. Those layers keep cut-outs so no details are covered.",
+      "Some colors nest in both directions. Backing connects them where the stacking order allows; remaining cut-outs preserve the design.",
     )
     for (const id of cyclicIds) {
       const exact = exactMasks.get(id)
@@ -82,7 +89,12 @@ export function buildLayerMasks(image: RasterImage, options: LayerMaskOptions): 
     for (const value of mask) pixelCount += value
     layers.push({ color, mask, pixelCount })
   }
-  return { layers, warnings }
+  return {
+    layers: options.filledBacking
+      ? connectBackingLayers({ width: image.width, height: image.height, layers })
+      : layers,
+    warnings,
+  }
 }
 
 function labelPixels(image: RasterImage, smoothing: number): LabelRaster {
@@ -202,62 +214,4 @@ function enqueueComplement(
   visited[pixelIndex] = 1
   queue[end] = pixelIndex
   return end + 1
-}
-
-function findCyclicIds(
-  ids: readonly number[],
-  dependencies: Map<number, Set<number>>,
-): Set<number> {
-  const cyclic = new Set<number>()
-  for (const source of ids) {
-    for (const target of dependencies.get(source) ?? []) {
-      if (canReach(target, source, dependencies, new Set())) {
-        cyclic.add(source)
-        cyclic.add(target)
-      }
-    }
-  }
-  return cyclic
-}
-
-function canReach(
-  current: number,
-  target: number,
-  dependencies: Map<number, Set<number>>,
-  visited: Set<number>,
-): boolean {
-  if (current === target) return true
-  if (visited.has(current)) return false
-  visited.add(current)
-  for (const next of dependencies.get(current) ?? []) {
-    if (canReach(next, target, dependencies, visited)) return true
-  }
-  return false
-}
-
-function topologicalOrder(
-  colors: readonly { readonly color: string; readonly id: number }[],
-  dependencies: Map<number, Set<number>>,
-): readonly number[] {
-  const indegrees = new Map(colors.map(({ id }) => [id, 0]))
-  for (const targets of dependencies.values()) {
-    for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1)
-  }
-  const colorById = new Map(colors.map(({ color, id }) => [id, color]))
-  const ready = colors.filter(({ id }) => indegrees.get(id) === 0).map(({ id }) => id)
-  const ordered: number[] = []
-  while (ready.length > 0) {
-    ready.sort((left, right) =>
-      (colorById.get(left) ?? "").localeCompare(colorById.get(right) ?? ""),
-    )
-    const current = ready.shift()
-    if (current === undefined) break
-    ordered.push(current)
-    for (const target of dependencies.get(current) ?? []) {
-      const remaining = (indegrees.get(target) ?? 0) - 1
-      indegrees.set(target, remaining)
-      if (remaining === 0) ready.push(target)
-    }
-  }
-  return ordered
 }

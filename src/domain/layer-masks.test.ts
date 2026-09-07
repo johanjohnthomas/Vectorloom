@@ -19,6 +19,29 @@ const red = [255, 0, 0, 255] as const
 const white = [255, 255, 255, 255] as const
 
 describe("buildLayerMasks", () => {
+  it("joins separated color panels with backing hidden beneath an upper stripe", () => {
+    const source = image([
+      [red, red, blue, red, red],
+      [red, red, blue, red, red],
+      [red, red, blue, red, red],
+    ])
+
+    const result = buildLayerMasks(source, { filledBacking: true, smoothing: 0 })
+
+    expect(result.layers.map(({ color, pixelCount }) => [color, pixelCount])).toEqual([
+      ["#ff0000", 15],
+      ["#0000ff", 3],
+    ])
+  })
+
+  it("does not bridge transparent space between separate subjects", () => {
+    const source = image([[red, blue, TRANSPARENT, red, blue]])
+
+    const result = buildLayerMasks(source, { filledBacking: true, smoothing: 0 })
+
+    for (const layer of result.layers) expect(layer.mask[2]).toBe(0)
+  })
+
   it("fills an eye ring beneath its pupil regardless of palette encounter order", () => {
     // Given
     const source = image([
@@ -32,7 +55,8 @@ describe("buildLayerMasks", () => {
 
     // Then
     expect(result.layers.map(({ color }) => color)).toEqual(["#ffffff", "#000000"])
-    expect(Array.from(result.layers[0]?.mask ?? [])).toEqual([0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1])
+    expect(Array.from(result.layers[0]?.mask ?? [])).toEqual([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1])
+    expect(result.layers[1]?.mask[0]).toBe(1)
   })
 
   it("keeps the pupil knocked out when filled backing is disabled", () => {
@@ -89,7 +113,7 @@ describe("buildLayerMasks", () => {
     ])
   })
 
-  it("falls back to knockout masks when color containment is cyclic", () => {
+  it("adds safe backing while retaining necessary cut-outs when color containment is cyclic", () => {
     // Given
     const source = image([
       [red, red, red, TRANSPARENT, blue, blue, blue],
@@ -104,7 +128,7 @@ describe("buildLayerMasks", () => {
     expect(result.warnings).toHaveLength(1)
     expect(
       result.layers.map(({ pixelCount }) => pixelCount).sort((left, right) => left - right),
-    ).toEqual([9, 9])
+    ).toEqual([9, 18])
   })
 
   it("returns no layers for an empty image", () => {
@@ -116,6 +140,35 @@ describe("buildLayerMasks", () => {
 
     // Then
     expect(result).toEqual({ layers: [], warnings: [] })
+  })
+
+  it("preserves every assembled pixel with filled backing on mixed-color artwork", () => {
+    const palette = [red, blue, black, white, TRANSPARENT]
+    for (let seed = 1; seed <= 20; seed += 1) {
+      let state = seed
+      const rows = Array.from({ length: 12 }, () =>
+        Array.from({ length: 12 }, () => {
+          state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+          return palette[state % palette.length] ?? TRANSPARENT
+        }),
+      )
+      const source = image(rows)
+
+      const result = buildLayerMasks(source, { filledBacking: true, smoothing: 0 })
+
+      for (let index = 0; index < 144; index += 1) {
+        const pixel = rows[Math.floor(index / 12)]?.[index % 12] ?? TRANSPARENT
+        const top = [...result.layers].reverse().find((layer) => layer.mask[index] === 1)
+        const expected =
+          pixel[3] === 0
+            ? undefined
+            : `#${pixel
+                .slice(0, 3)
+                .map((channel) => channel.toString(16).padStart(2, "0"))
+                .join("")}`
+        expect(top?.color).toBe(expected)
+      }
+    }
   })
 
   it("removes an isolated interior color when smoothing is enabled", () => {

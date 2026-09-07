@@ -110,8 +110,8 @@ export function Inspector(props: InspectorProps) {
               Filled backing layers
             </label>
             <p>
-              Fill beneath enclosed details, like a solid white eye under its pupil. Transparent
-              openings stay open.
+              Connect pieces with solid backing beneath upper colors. Transparent gaps stay open;
+              pieces that cannot be joined invisibly stay separate.
             </p>
           </div>
         </>
