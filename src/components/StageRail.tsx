@@ -20,10 +20,6 @@ export function StageRail({ current }: StageRailProps) {
         <path className="mark-frame" d="M32 6 58 32 32 58 6 32Z" />
         <path className="mark-weave" d="m20 22 10 24 4-12 10-12h-7l-5 7-3-7Z" />
       </svg>
-      <div className="process-intro">
-        <strong>4-step process</strong>
-        <span>Upload once. The next stages follow in order.</span>
-      </div>
       <ol>
         {STAGES.map(({ label, icon: Icon }, index) => {
           const isCurrent = index === current

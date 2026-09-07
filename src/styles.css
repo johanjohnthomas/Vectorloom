@@ -119,23 +119,6 @@ button:disabled {
   fill: var(--paper);
 }
 
-.process-intro {
-  display: grid;
-  gap: 4px;
-  padding: 0 4px;
-}
-
-.process-intro strong {
-  color: var(--paper);
-  font-size: 11px;
-}
-
-.process-intro span {
-  color: var(--fog);
-  font-size: 9px;
-  line-height: 1.5;
-}
-
 .stage-rail ol {
   display: grid;
   gap: 16px;
@@ -668,9 +651,6 @@ button:disabled {
     padding: 12px 20px;
     border-right: 0;
     border-bottom: 1px solid var(--line-warm);
-  }
-  .process-intro {
-    display: none;
   }
   .stage-rail ol {
     display: flex;
