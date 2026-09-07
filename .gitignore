@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.omo/
+.debug-journal.md
+*.tsbuildinfo

@@ -1,0 +1,68 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { chromium } from "playwright"
+
+const evidenceDirectory = ".omo/evidence/vectorloom-browser"
+await mkdir(evidenceDirectory, { recursive: true })
+
+const browser = await chromium.launch({ channel: "chrome" })
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+const consoleErrors = []
+const mediaPipeDiagnostics = []
+page.on("console", (message) => {
+  if (message.type() !== "error") return
+  const text = message.text()
+  if (/^(I|W)\d{4}|^INFO: Created TensorFlow Lite/u.test(text)) {
+    mediaPipeDiagnostics.push(text)
+    return
+  }
+  consoleErrors.push(text)
+})
+await page.goto("http://127.0.0.1:4173/", { waitUntil: "networkidle" })
+await page.screenshot({ path: `${evidenceDirectory}/desktop-empty.png`, fullPage: true })
+
+const raceCar = await readFile("tests/fixtures/vintage-race-car.png")
+await page.setInputFiles('input[type="file"]', {
+  name: "vintage-race-car.png",
+  mimeType: "image/png",
+  buffer: raceCar,
+})
+await page.getByText("Image ready", { exact: false }).waitFor()
+await page.locator("canvas").focus()
+await page.keyboard.press("ArrowRight")
+await page.keyboard.press("Shift+ArrowUp")
+await page.screenshot({ path: `${evidenceDirectory}/desktop-selected.png`, fullPage: true })
+
+await page.getByRole("button", { name: "Create cut paths" }).click()
+await page.getByText(/Cut paths created|Subject isolated/u).waitFor({ timeout: 120_000 })
+await page.locator(".processing").waitFor({ state: "detached", timeout: 5_000 })
+await page.screenshot({ path: `${evidenceDirectory}/desktop-vector.png`, fullPage: true })
+
+const downloadPromise = page.waitForEvent("download")
+await page.getByRole("button", { name: "Download SVG" }).click()
+const download = await downloadPromise
+await download.saveAs(`${evidenceDirectory}/vectorloom-cut.svg`)
+
+await page.emulateMedia({ reducedMotion: "reduce" })
+await page.setViewportSize({ width: 768, height: 900 })
+await page.screenshot({ path: `${evidenceDirectory}/tablet-vector.png`, fullPage: true })
+await page.setViewportSize({ width: 375, height: 812 })
+await page.screenshot({ path: `${evidenceDirectory}/mobile-vector.png`, fullPage: true })
+
+const keyboardOrder = []
+await page.keyboard.press("Home")
+for (let index = 0; index < 8; index += 1) {
+  await page.keyboard.press("Tab")
+  const focused = await page.evaluate(() => document.activeElement?.textContent?.trim() ?? "input")
+  keyboardOrder.push(focused.slice(0, 60))
+}
+
+const qaResult = {
+  consoleErrors,
+  mediaPipeDiagnostics,
+  keyboardOrder,
+  download: download.suggestedFilename(),
+  status: await page.locator(".status-line").textContent(),
+}
+await writeFile(`${evidenceDirectory}/qa-result.json`, JSON.stringify(qaResult, null, 2))
+console.log(JSON.stringify(qaResult, null, 2))
+await browser.close()
