@@ -11,6 +11,10 @@ function imageFromPixels(pixels: readonly number[]): ImageData {
   }
 }
 
+function repeatedPixel(pixel: readonly number[], count: number): number[] {
+  return Array.from({ length: count }, () => pixel).flat()
+}
+
 describe("preparePalette", () => {
   it("consolidates related red shades while retaining red, blue, black, and white", () => {
     // Given
@@ -83,5 +87,47 @@ describe("preparePalette", () => {
 
     // Then
     expect(preserved.palette.length).toBeGreaterThan(merged.palette.length)
+  })
+
+  it("keeps small neutral black details separate from saturated dark red shadows", () => {
+    // Given
+    const image = imageFromPixels([
+      ...repeatedPixel([205, 38, 30, 255], 30),
+      ...repeatedPixel([52, 5, 5, 255], 8),
+      ...repeatedPixel([0, 0, 0, 255], 2),
+      ...repeatedPixel([15, 14, 13, 255], 4),
+    ])
+
+    // When
+    const result = preparePalette(image, { colors: 2, mergeShades: 0.6 })
+
+    // Then
+    expect(result.palette).toHaveLength(2)
+    expect(result.palette).toContainEqual({ r: 10, g: 9, b: 9, a: 255 })
+    expect(result.palette.some((color) => color.r > color.g * 2 && color.r > color.b * 2)).toBe(
+      true,
+    )
+    expect(Array.from(result.pixels.slice(120, 124))).toEqual(Array.from(result.pixels.slice(0, 4)))
+    expect(Array.from(result.pixels.slice(-24))).toEqual(repeatedPixel([10, 9, 9, 255], 6))
+  })
+
+  it("keeps neutral gray outside the near-black family while merging blue shadows", () => {
+    // Given
+    const image = imageFromPixels([
+      ...repeatedPixel([35, 80, 210, 255], 30),
+      ...repeatedPixel([8, 22, 72, 255], 8),
+      ...repeatedPixel([200, 200, 200, 255], 10),
+      ...repeatedPixel([0, 0, 0, 255], 2),
+      ...repeatedPixel([15, 14, 13, 255], 4),
+    ])
+
+    // When
+    const result = preparePalette(image, { colors: 3, mergeShades: 1 })
+
+    // Then
+    expect(result.palette).toHaveLength(3)
+    expect(Array.from(result.pixels.slice(120, 124))).toEqual(Array.from(result.pixels.slice(0, 4)))
+    expect(Array.from(result.pixels.slice(152, 156))).toEqual([200, 200, 200, 255])
+    expect(Array.from(result.pixels.slice(-24))).toEqual(repeatedPixel([10, 9, 9, 255], 6))
   })
 })

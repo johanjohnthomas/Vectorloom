@@ -110,16 +110,14 @@ function createClusters(
 ): PaletteCluster[] {
   const threshold = 0.045 + mergeShades * 0.305
   const clusters: PaletteCluster[] = []
+  const neutralBlack = bins.find(isNeutralBlack)
+  if (neutralBlack !== undefined) clusters.push(createCluster(neutralBlack))
+
   for (const bin of bins) {
-    if (clusters.some((cluster) => colorDistance(bin.lab, cluster.seed.lab) <= threshold)) continue
+    if (bin === neutralBlack) continue
+    if (clusters.some((cluster) => paletteDistance(bin, cluster.seed) <= threshold)) continue
     if (clusters.length === colorCap) break
-    clusters.push({
-      seed: bin,
-      redSum: 0,
-      greenSum: 0,
-      blueSum: 0,
-      count: 0,
-    })
+    clusters.push(createCluster(bin))
   }
 
   for (const bin of bins) {
@@ -130,6 +128,10 @@ function createClusters(
     cluster.count += bin.count
   }
   return clusters
+}
+
+function createCluster(seed: ColorBin): PaletteCluster {
+  return { seed, redSum: 0, greenSum: 0, blueSum: 0, count: 0 }
 }
 
 function assignBins(bins: readonly ColorBin[], clusters: readonly PaletteCluster[]): Int16Array {
@@ -144,17 +146,31 @@ function assignBins(bins: readonly ColorBin[], clusters: readonly PaletteCluster
 function nearestCluster(bin: ColorBin, clusters: readonly PaletteCluster[]): PaletteCluster {
   let nearest = clusters[0]
   if (nearest === undefined) throw new RangeError("Cannot assign a palette without opaque colors.")
-  let nearestDistance = colorDistance(bin.lab, nearest.seed.lab)
+  let nearestDistance = paletteDistance(bin, nearest.seed)
   for (let index = 1; index < clusters.length; index += 1) {
     const cluster = clusters[index]
     if (cluster === undefined) continue
-    const distance = colorDistance(bin.lab, cluster.seed.lab)
+    const distance = paletteDistance(bin, cluster.seed)
     if (distance < nearestDistance) {
       nearest = cluster
       nearestDistance = distance
     }
   }
   return nearest
+}
+
+function paletteDistance(left: ColorBin, right: ColorBin): number {
+  const leftNearBlack = isNeutralBlack(left)
+  const rightNearBlack = isNeutralBlack(right)
+  if (leftNearBlack || rightNearBlack)
+    return leftNearBlack && rightNearBlack ? 0 : Number.POSITIVE_INFINITY
+  return colorDistance(left.lab, right.lab)
+}
+
+function isNeutralBlack(color: Pick<ColorBin, "r" | "g" | "b">): boolean {
+  const brightest = Math.max(color.r, color.g, color.b)
+  const darkest = Math.min(color.r, color.g, color.b)
+  return brightest <= 32 && brightest - darkest <= 12
 }
 
 function toPaletteColor(cluster: PaletteCluster): PaletteColor {
