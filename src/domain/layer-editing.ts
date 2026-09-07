@@ -14,16 +14,19 @@ export type LayerDocument = {
 }
 
 export type LayerEdit =
-  | { readonly kind: "add" | "erase"; readonly layerId: string; readonly stroke: BrushStroke }
+  | {
+      readonly kind: "add" | "erase"
+      readonly layerId: string | undefined
+      readonly stroke: BrushStroke
+    }
   | { readonly kind: "new"; readonly stroke: BrushStroke }
 
 export function editLayer(document: LayerDocument, edit: LayerEdit): LayerDocument {
   const strokeMask = rasterizeStroke(edit.stroke, document)
   switch (edit.kind) {
     case "add":
-      return editExistingLayer(document, edit.layerId, strokeMask, 1)
     case "erase":
-      return editExistingLayer(document, edit.layerId, strokeMask, 0)
+      return editExistingLayers(document, edit, strokeMask)
     case "new":
       return createLayer(document, strokeMask)
     default:
@@ -31,22 +34,42 @@ export function editLayer(document: LayerDocument, edit: LayerEdit): LayerDocume
   }
 }
 
-function editExistingLayer(
+function editExistingLayers(
   document: LayerDocument,
-  layerId: string,
+  edit: Extract<LayerEdit, { readonly kind: "add" | "erase" }>,
   strokeMask: Uint8Array,
-  value: 0 | 1,
 ): LayerDocument {
-  const selected = document.layers.find(({ id }) => id === layerId)
-  if (selected === undefined) return document
-  const mask = new Uint8Array(selected.mask)
-  for (let index = 0; index < mask.length; index += 1) {
-    if ((strokeMask[index] ?? 0) === 1) mask[index] = value
+  const layerId =
+    edit.layerId ?? (edit.kind === "add" ? colorAtStart(document, edit.stroke) : undefined)
+  if (edit.kind === "add" && layerId === undefined) return document
+  const value = edit.kind === "add" ? 1 : 0
+  let changed = false
+  const layers = document.layers.map((layer) => {
+    if (layerId !== undefined && layer.id !== layerId) return layer
+    let mask: Uint8Array | undefined
+    for (let index = 0; index < layer.mask.length; index += 1) {
+      if (strokeMask[index] !== 1 || layer.mask[index] === value) continue
+      mask ??= new Uint8Array(layer.mask)
+      mask[index] = value
+    }
+    if (mask === undefined) return layer
+    changed = true
+    return { ...layer, mask }
+  })
+  return changed ? { ...document, layers } : document
+}
+
+function colorAtStart(document: LayerDocument, stroke: BrushStroke): string | undefined {
+  const point = stroke.points[0]
+  if (point === undefined) return undefined
+  const x = Math.round(Math.min(1, Math.max(0, point.x)) * (document.width - 1))
+  const y = Math.round(Math.min(1, Math.max(0, point.y)) * (document.height - 1))
+  const pixel = y * document.width + x
+  for (let index = document.layers.length - 1; index >= 0; index -= 1) {
+    const layer = document.layers[index]
+    if (layer?.mask[pixel] === 1) return layer.id
   }
-  return {
-    ...document,
-    layers: document.layers.map((layer) => (layer.id === layerId ? { ...layer, mask } : layer)),
-  }
+  return undefined
 }
 
 function createLayer(document: LayerDocument, strokeMask: Uint8Array): LayerDocument {

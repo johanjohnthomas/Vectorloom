@@ -93,4 +93,34 @@ describe("editLayer", () => {
     // Then
     expect(edited).toBe(original)
   })
+
+  it("does not guess a layer when a combined add stroke starts in transparency", () => {
+    const original = document()
+
+    const edited = editLayer(original, {
+      kind: "add",
+      layerId: undefined,
+      stroke: {
+        points: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0.5 },
+        ],
+        radius: 0.05,
+      },
+    })
+
+    expect(edited).toBe(original)
+  })
+
+  it("leaves masks unchanged when a combined erase misses every layer", () => {
+    const original = document()
+
+    const edited = editLayer(original, {
+      kind: "erase",
+      layerId: undefined,
+      stroke: { points: [{ x: 0, y: 0 }], radius: 0.05 },
+    })
+
+    expect(edited).toBe(original)
+  })
 })

@@ -162,7 +162,11 @@ export function useVectorProject() {
       kind: changed ? "success" : "info",
       message: changed
         ? "Layer repaired. Your SVG download includes this change."
-        : "Brush a visible part of the original to sample its color.",
+        : output.tool === "new"
+          ? "Brush a visible part of the original to sample its color."
+          : output.tool === "erase"
+            ? "No paths changed. Brush over a filled area to erase it."
+            : "No paths changed. To add in All layers, start on a color in the cut preview, or select a layer to paint freely.",
     })
   }
 

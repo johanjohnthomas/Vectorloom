@@ -20,23 +20,22 @@ export function useLayerRepairs(settings: TraceSettings) {
 
   function chooseTool(next: RepairTool): void {
     setTool(next)
-    if ((next === "add" || next === "erase") && selected === undefined) setSelected(0)
   }
 
   function repair(stroke: BrushStroke): boolean {
     if (result === undefined || tool === "inspect") return false
-    const layer = result.layers[selected ?? 0]
-    if (tool !== "new" && layer === undefined) return false
+    const layer = selected === undefined ? undefined : result.layers[selected]
+    if (tool !== "new" && selected !== undefined && layer === undefined) return false
     const document =
       tool === "new"
         ? editLayer(result.document, { kind: "new", stroke })
-        : editLayer(result.document, { kind: tool, layerId: layer?.id ?? "", stroke })
+        : editLayer(result.document, { kind: tool, layerId: layer?.id, stroke })
     if (document === result.document) return false
     const next = traceDocument(document, settings, result)
     setHistory((previous) => [...previous.slice(-11), result])
     setResult(next)
     if (tool === "new") {
-      setSelected(next.layers.length - 1)
+      if (selected !== undefined) setSelected(next.layers.length - 1)
       setTool("add")
     }
     return true

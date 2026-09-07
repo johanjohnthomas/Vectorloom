@@ -34,14 +34,7 @@ export function LayerEditor({
         </button>
       </div>
       <div className="layer-panel">
-        <LayerReview
-          layers={result.layers}
-          selected={selected}
-          onSelect={(index) => {
-            setSelected(index)
-            if (index === undefined) chooseTool("inspect")
-          }}
-        />
+        <LayerReview layers={result.layers} selected={selected} onSelect={setSelected} />
       </div>
       <div className="brush-toolbar" aria-label="Repair tools">
         <button
@@ -86,11 +79,15 @@ export function LayerEditor({
       </div>
       <p className="tool-help">
         {tool === "new"
-          ? "Brush the missing color on the original. We sample it and create a new layer, then you can keep painting."
+          ? "Brush either view to create a layer using the original image’s color at that spot."
           : tool === "erase"
-            ? "Erase from the selected layer. Other layers are unchanged."
+            ? selected === undefined
+              ? "All layers: erase through every layer under your brush, including hidden backing. Undo restores the whole stroke."
+              : "Erase from the selected layer. Other layers are unchanged."
             : tool === "add"
-              ? "Paint on either view to restore this layer or draw a solid connection. Your brush can cross transparent gaps."
+              ? selected === undefined
+                ? "All layers: start on a color in the cut preview, then brush to extend or connect it. That color is used for the whole stroke."
+                : "Paint on either view to restore this layer or draw a solid connection. Your brush can cross transparent gaps."
               : "Compare the original with all layers or inspect one layer. Choose a brush to repair the actual cut paths."}
       </p>
       {tool !== "inspect" && <BrushSize radius={project.radius} onChange={project.setRadius} />}
@@ -115,7 +112,7 @@ export function LayerEditor({
               width={result.width}
               height={result.height}
               radius={project.radius}
-              active={active && tool !== "new"}
+              active={active}
               label="Layer repair brush"
               onStroke={project.repair}
             />
